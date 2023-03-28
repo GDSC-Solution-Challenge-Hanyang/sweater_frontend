@@ -202,7 +202,6 @@ class HomePage extends StatelessWidget {
 
 
 
-
 class TipsPage extends StatefulWidget {
   @override
   _TipsPageState createState() => _TipsPageState();
