@@ -307,6 +307,44 @@ class _TipsPageState extends State<TipsPage> {
   }
 }
 
+// class TipsTabContent extends StatelessWidget {
+//   final String category;
+
+//   TipsTabContent(this.category);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return GridView.builder(
+//       padding: EdgeInsets.all(8.0),
+//       itemCount: 10,
+//       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+//         crossAxisCount: 2,
+//         crossAxisSpacing: 8.0,
+//         mainAxisSpacing: 8.0,
+//         childAspectRatio: 1.0,
+//       ),
+//       itemBuilder: (BuildContext context, int index) {
+//         return Card(
+//           child: Column(
+//             children: [
+//               Expanded(
+//                 child: Image.network(
+//                   'https://picsum.photos/seed/${category.hashCode + index}/200',
+//                   fit: BoxFit.cover,
+//                 ),
+//               ),
+//               Padding(
+//                 padding: EdgeInsets.all(8.0),
+//                 child: Text('Tip ${index + 1}'),
+//               ),
+//             ],
+//           ),
+//         );
+//       },
+//     );
+//   }
+// }
+
 class TipsTabContent extends StatelessWidget {
   final String category;
 
@@ -314,32 +352,45 @@ class TipsTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: EdgeInsets.all(8.0),
-      itemCount: 10,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 8.0,
-        mainAxisSpacing: 8.0,
-        childAspectRatio: 1.0,
-      ),
-      itemBuilder: (BuildContext context, int index) {
-        return Card(
-          child: Column(
-            children: [
-              Expanded(
-                child: Image.network(
-                  'https://picsum.photos/seed/${category.hashCode + index}/200',
-                  fit: BoxFit.cover,
+    return FutureBuilder<List<dynamic>>(
+      future: fetchContents("1"),
+      builder: (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          final contents = snapshot.data!;
+          return GridView.builder(
+            padding: EdgeInsets.all(8.0),
+            itemCount: contents.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8.0,
+              mainAxisSpacing: 8.0,
+              childAspectRatio: 1.0,
+            ),
+            itemBuilder: (BuildContext context, int index) {
+              final content = contents[index];
+              return Card(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Image.network(
+                        'https://picsum.photos/seed/${category.hashCode + index}/200',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(content['title']),
+                    ),
+                  ],
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('Tip ${index + 1}'),
-              ),
-            ],
-          ),
-        );
+              );
+            },
+          );
+        }
       },
     );
   }
@@ -714,5 +765,16 @@ Future<void> createPost(
   } else {
     print('Failed to create post');
     print(response.statusCode);
+  }
+}
+
+Future<List<dynamic>> fetchContents(String category) async {
+  final String apiUrl = 'http://127.0.0.1:6060/post?category=$category';
+  final response = await http.get(Uri.parse(apiUrl));
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception('Failed to load contents');
   }
 }
