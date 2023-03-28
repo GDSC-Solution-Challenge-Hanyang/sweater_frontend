@@ -5,12 +5,152 @@ import 'dart:convert';
 
 void main() => runApp(SweaterApp());
 
-class SweaterApp extends StatefulWidget {
+class SweaterApp extends StatelessWidget {
   @override
-  _SweaterAppState createState() => _SweaterAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Sweater',
+      theme: ThemeData(
+        primaryColor: Color(0xFFF1F2EC),
+        backgroundColor: Color(0xFFF1F2EC),
+      ),
+      home: SignUpPage(),
+    );
+  }
 }
 
-class _SweaterAppState extends State<SweaterApp> {
+class SignUpPage extends StatefulWidget {
+  @override
+  _SignUpPageState createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final TextEditingController _nicknameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> _signUp() async {
+    final response = await http.post(
+      Uri.parse('http://127.0.0.1:6060/member/signup'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+        'nickName': _nicknameController.text,
+        'email': _emailController.text,
+        'pwd': _passwordController.text,
+        'role': 'MENTEE',
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => _SweaterAppState(),
+        ),
+      );
+    } else {
+      // Show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign up failed!')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFFFFF8E1), // Ivory background color
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Image.asset('assets/images/sweater_logo.png'),
+                SizedBox(height: 16.0),
+                Text(
+                  'Welcome to Sweater!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 32.0),
+                TextField(
+                  controller: _nicknameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nickname',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10.0),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.0),
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10.0),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.0),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(10.0),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 32.0),
+                ElevatedButton(
+                  onPressed: _signUp,
+                  style: ElevatedButton.styleFrom(
+                    primary: Color(0xFF205072),
+                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: Text(
+                    'Sign Up',
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SweaterAppState extends StatefulWidget {
+  @override
+  __SweaterAppStateState createState() => __SweaterAppStateState();
+}
+
+class __SweaterAppStateState extends State<_SweaterAppState> {
   int _selectedIndex = 0;
 
   final List<Widget> _widgetOptions = <Widget>[
@@ -566,11 +706,11 @@ class CommunityTabContent extends StatelessWidget {
                       ),
                     ]),
                 onTap: () {
-                  // TODO: 게시글 화면으로 이동
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PostDetailPage(postData: content),
+                      builder: (context) =>
+                          PostDetailPage(postId: content['postId']),
                     ),
                   );
                 },
@@ -583,10 +723,27 @@ class CommunityTabContent extends StatelessWidget {
   }
 }
 
-class PostDetailPage extends StatelessWidget {
-  final Map<String, dynamic> postData;
+class PostDetailPage extends StatefulWidget {
+  final int postId;
 
-  PostDetailPage({required this.postData});
+  PostDetailPage({required this.postId});
+
+  @override
+  _PostDetailPageState createState() => _PostDetailPageState();
+}
+
+class _PostDetailPageState extends State<PostDetailPage> {
+  Future<Map<String, dynamic>> fetchPostDetail() async {
+    final response = await http
+        .get(Uri.parse('http://127.0.0.1:6060/post/${widget.postId}'));
+
+    if (response.statusCode == 200) {
+      Map<String, dynamic> data = json.decode(response.body);
+      return data;
+    } else {
+      throw Exception('Failed to load post details');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -596,85 +753,96 @@ class PostDetailPage extends StatelessWidget {
       ),
       backgroundColor: Color(0xFFFFF0E0),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(height: 8),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.all(0),
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage(
-                          'https://picsum.photos/seed/${postData['nickname']}/200',
-                        ),
-                      ),
-                      title: Text(
-                        postData['nickname'],
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(postData['createdAt']),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 8.0),
-                      child: Text(
-                        postData['title'],
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Image.network(
-                      'https://picsum.photos/seed/${postData['postId']}/600/400',
-                      width: double.infinity,
-                      height: 300,
-                      fit: BoxFit.cover,
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(
-                        postData['content'],
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: fetchPostDetail(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              Map<String, dynamic> postData = snapshot.data!;
+              return Column(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Write a comment...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                  SizedBox(height: 8),
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            contentPadding: EdgeInsets.all(0),
+                            leading: CircleAvatar(
+                              backgroundImage: NetworkImage(
+                                'https://picsum.photos/seed/${postData['nickname']}/200',
+                              ),
+                            ),
+                            title: Text(
+                              postData['nickname'],
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(postData['createdAt']),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 8.0),
+                            child: Text(
+                              postData['title'],
+                              style: TextStyle(
+                                  fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Image.network(
+                            'https://picsum.photos/seed/${postData['postId']}/600/400',
+                            width: double.infinity,
+                            height: 300,
+                            fit: BoxFit.cover,
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              postData['content'],
+                              style: TextStyle(fontSize: 18),
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: 3,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.send),
-                    onPressed: () {
-                      // TODO: Implement sending the comment
-                    },
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'Write a comment...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            maxLines: 3,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.send),
+                          onPressed: () {
+                            // TODO: Implement sending the comment
+                          },
+                        ),
+                      ],
+                    ),
                   ),
+                  SizedBox(height: 8),
+                  // Here you can add your list of comments
+                  // Each comment should be wrapped in a Card widget with a ListTile inside, similar to the main post content
                 ],
-              ),
-            ),
-            SizedBox(height: 8),
-            // Here you can add your list of comments
-            // Each comment should be wrapped in a Card widget with a ListTile inside, similar to the main post content
-          ],
+              );
+            } else if (snapshot.hasError) {
+              return Text("${snapshot.error}");
+            }
+            return CircularProgressIndicator();
+          },
         ),
       ),
     );
