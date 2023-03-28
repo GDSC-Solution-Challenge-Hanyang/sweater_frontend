@@ -474,6 +474,50 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 }
 
+// class CommunityTabContent extends StatelessWidget {
+//   final String category;
+
+//   CommunityTabContent(this.category);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return ListView.builder(
+//       itemCount: 10,
+//       itemBuilder: (BuildContext context, int index) {
+//         return ListTile(
+//           leading: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               CircleAvatar(
+//                 backgroundImage: NetworkImage(
+//                   'https://picsum.photos/seed/${category.hashCode + index}/200',
+//                 ),
+//               ),
+//               Text('User ${index + 1}',
+//                   style:
+//                       TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+//             ],
+//           ),
+//           title:
+//               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+//             Text('제목 ${index + 1}',
+//                 style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+//             Text(
+//               '내용 미리보기...',
+//               overflow: TextOverflow.ellipsis,
+//               maxLines: 1,
+//               style: TextStyle(fontSize: 12.0),
+//             ),
+//           ]),
+//           onTap: () {
+//             // TODO: 게시글 화면으로 이동
+//           },
+//         );
+//       },
+//     );
+//   }
+// }
+
 class CommunityTabContent extends StatelessWidget {
   final String category;
 
@@ -481,39 +525,139 @@ class CommunityTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 10,
-      itemBuilder: (BuildContext context, int index) {
-        return ListTile(
-          leading: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
+    return FutureBuilder<List<dynamic>>(
+      future: fetchContents("1"),
+      builder: (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else {
+          final contents = snapshot.data!;
+          return ListView.builder(
+            itemCount: contents.length,
+            itemBuilder: (BuildContext context, int index) {
+              final content = contents[index];
+              return ListTile(
+                leading: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(
+                        'https://picsum.photos/seed/${category.hashCode + index}/200',
+                      ),
+                    ),
+                    Text(content['nickname'],
+                        style: TextStyle(
+                            fontSize: 12.0, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(content['title'],
+                          style: TextStyle(
+                              fontSize: 14.0, fontWeight: FontWeight.bold)),
+                      Text(
+                        content['content'],
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: 12.0),
+                      ),
+                    ]),
+                onTap: () {
+                  // TODO: 게시글 화면으로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PostDetailPage(postData: content),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+}
+
+class PostDetailPage extends StatelessWidget {
+  final Map<String, dynamic> postData;
+
+  PostDetailPage({required this.postData});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Post Detail'),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: CircleAvatar(
                 backgroundImage: NetworkImage(
-                  'https://picsum.photos/seed/${category.hashCode + index}/200',
+                  'https://picsum.photos/seed/${postData['nickname']}/200',
                 ),
               ),
-              Text('User ${index + 1}',
-                  style:
-                      TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          title:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('제목 ${index + 1}',
-                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
-            Text(
-              '내용 미리보기...',
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: TextStyle(fontSize: 12.0),
+              title: Text(
+                postData['nickname'],
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(postData['createdAt']),
             ),
-          ]),
-          onTap: () {
-            // TODO: 게시글 화면으로 이동
-          },
-        );
-      },
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                postData['title'],
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(height: 8),
+            Image.network(
+              'https://picsum.photos/seed/${postData['postId']}/600/400',
+              width: double.infinity,
+              height: 300,
+              fit: BoxFit.cover,
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.favorite_border),
+                    onPressed: () {
+                      // Handle like button press
+                    },
+                  ),
+                  Text("${postData['likeCount']}"),
+                  SizedBox(width: 16),
+                  IconButton(
+                    icon: Icon(Icons.comment),
+                    onPressed: () {
+                      // Handle comment button press
+                    },
+                  ),
+                  Text("${postData['commentCount']}"),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                postData['content'],
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+            SizedBox(height: 16),
+            // Add your comment section here
+          ],
+        ),
+      ),
     );
   }
 }
