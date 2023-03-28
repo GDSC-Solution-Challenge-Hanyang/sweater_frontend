@@ -594,67 +594,86 @@ class PostDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Post Detail'),
       ),
+      backgroundColor: Color(0xFFFFF0E0),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ListTile(
-              leading: CircleAvatar(
-                backgroundImage: NetworkImage(
-                  'https://picsum.photos/seed/${postData['nickname']}/200',
+            SizedBox(height: 8),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.all(0),
+                      leading: CircleAvatar(
+                        backgroundImage: NetworkImage(
+                          'https://picsum.photos/seed/${postData['nickname']}/200',
+                        ),
+                      ),
+                      title: Text(
+                        postData['nickname'],
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(postData['createdAt']),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: Text(
+                        postData['title'],
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Image.network(
+                      'https://picsum.photos/seed/${postData['postId']}/600/400',
+                      width: double.infinity,
+                      height: 300,
+                      fit: BoxFit.cover,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        postData['content'],
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              title: Text(
-                postData['nickname'],
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(postData['createdAt']),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                postData['title'],
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
             SizedBox(height: 8),
-            Image.network(
-              'https://picsum.photos/seed/${postData['postId']}/600/400',
-              width: double.infinity,
-              height: 300,
-              fit: BoxFit.cover,
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
+                  Expanded(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Write a comment...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ),
                   IconButton(
-                    icon: Icon(Icons.favorite_border),
+                    icon: Icon(Icons.send),
                     onPressed: () {
-                      // Handle like button press
+                      // TODO: Implement sending the comment
                     },
                   ),
-                  Text("${postData['likeCount']}"),
-                  SizedBox(width: 16),
-                  IconButton(
-                    icon: Icon(Icons.comment),
-                    onPressed: () {
-                      // Handle comment button press
-                    },
-                  ),
-                  Text("${postData['commentCount']}"),
                 ],
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                postData['content'],
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-            SizedBox(height: 16),
-            // Add your comment section here
+            SizedBox(height: 8),
+            // Here you can add your list of comments
+            // Each comment should be wrapped in a Card widget with a ListTile inside, similar to the main post content
           ],
         ),
       ),
