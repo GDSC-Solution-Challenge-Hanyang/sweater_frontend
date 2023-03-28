@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() => runApp(SweaterApp());
 
@@ -8,7 +10,7 @@ class SweaterApp extends StatefulWidget {
   _SweaterAppState createState() => _SweaterAppState();
 }
 
-  class _SweaterAppState extends State<SweaterApp> {
+class _SweaterAppState extends State<SweaterApp> {
   int _selectedIndex = 0;
 
   final List<Widget> _widgetOptions = <Widget>[
@@ -24,7 +26,7 @@ class SweaterApp extends StatefulWidget {
     });
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Sweater',
@@ -80,7 +82,24 @@ class SweaterApp extends StatefulWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Future<List<dynamic>> fetchPosts(int category) async {
+    final response = await http
+        .get(Uri.parse('http://127.0.0.1:6060/post?category=$category'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data;
+    } else {
+      throw Exception('Failed to load posts');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -90,15 +109,16 @@ class HomePage extends StatelessWidget {
           child: Column(
             children: [
               Image.asset('assets/images/sweater_logo.png'),
-              // SizedBox(height: 16.0),
-              // //Text('May I help you?',
-              // //textAlign: TextAlign.right,
-              // style: TextStyle(
-              //   fontSize: 10.0,
-              //   fontWeight: FontWeight.bold,
-              //   color: Colors.black87,
-              //   ),
-              // ),
+              SizedBox(height: 16.0),
+              Text(
+                'May I help you?',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 10.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
               SizedBox(height: 16.0),
               TextField(
                 decoration: InputDecoration(
@@ -116,6 +136,59 @@ class HomePage extends StatelessWidget {
         ),
         //Text('Category1'),
         Expanded(
+          child: FutureBuilder<List<dynamic>>(
+            future: fetchPosts(1),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return ListView.builder(
+                  shrinkWrap: true,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: snapshot.data?.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    var post = snapshot.data![index];
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Card(
+                        child: SizedBox(
+                          width: 100,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AspectRatio(
+                                aspectRatio: 4 / 3,
+                                child: Image.network(
+                                  'https://picsum.photos/seed/${index + 1}/200',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(post['title']),
+                                    SizedBox(height: 8),
+                                    Text(post['nickname']),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              } else if (snapshot.hasError) {
+                return Text("${snapshot.error}");
+              }
+              return CircularProgressIndicator();
+            },
+          ),
+        ),
+        SizedBox(height: 16.0),
+        //Text('Category2'),
+        Expanded(
           child: ListView.builder(
             shrinkWrap: true,
             scrollDirection: Axis.horizontal, // 가로 스크롤
@@ -131,7 +204,7 @@ class HomePage extends StatelessWidget {
                         AspectRatio(
                           aspectRatio: 4 / 3,
                           child: Image.network(
-                            'https://picsum.photos/seed/${index + 1}/200',
+                            'https://picsum.photos/seed/${index + 11}/200',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -140,9 +213,9 @@ class HomePage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Tip${index + 1}"),
+                              Text('Tip${index + 11}'),
                               SizedBox(height: 8),
-                              Text('건강보험료'),
+                              Text('지원금'),
                             ],
                           ),
                         ),
@@ -154,53 +227,10 @@ class HomePage extends StatelessWidget {
             },
           ),
         ),
-        SizedBox(height: 16.0),
-        //Text('Category2'),
-        Expanded(
-            child: ListView.builder(
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal, // 가로 스크롤
-              itemBuilder: (BuildContext context, int index) {
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Card(
-                    child: SizedBox(
-                      width: 100,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AspectRatio(
-                            aspectRatio: 4 / 3,
-                            child: Image.network(
-                              'https://picsum.photos/seed/${index + 11}/200',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Tip${index + 11}'),
-                                SizedBox(height: 8),
-                                Text('지원금'),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ),
       ],
     );
   }
 }
-
-
 
 class TipsPage extends StatefulWidget {
   @override
@@ -261,7 +291,9 @@ class _TipsPageState extends State<TipsPage> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
         decoration: BoxDecoration(
-          color: _selectedTabIndex == index ? Color(0xFF205072) : Colors.transparent,
+          color: _selectedTabIndex == index
+              ? Color(0xFF205072)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: Text(
@@ -312,8 +344,6 @@ class TipsTabContent extends StatelessWidget {
     );
   }
 }
-
-
 
 class CommunityPage extends StatefulWidget {
   @override
@@ -377,7 +407,9 @@ class _CommunityPageState extends State<CommunityPage> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
         decoration: BoxDecoration(
-          color: _selectedTabIndex == index ? Color(0xFF205072) : Colors.transparent,
+          color: _selectedTabIndex == index
+              ? Color(0xFF205072)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: Text(
@@ -410,21 +442,22 @@ class CommunityTabContent extends StatelessWidget {
                   'https://picsum.photos/seed/${category.hashCode + index}/200',
                 ),
               ),
-              Text('User ${index + 1}', style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
+              Text('User ${index + 1}',
+                  style:
+                      TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold)),
             ],
           ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('제목 ${index + 1}', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
-              Text(
-                '내용 미리보기...',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: TextStyle(fontSize: 12.0),
-              ),
-            ]
-          ),
+          title:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('제목 ${index + 1}',
+                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold)),
+            Text(
+              '내용 미리보기...',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(fontSize: 12.0),
+            ),
+          ]),
           onTap: () {
             // TODO: 게시글 화면으로 이동
           },
@@ -499,18 +532,19 @@ class _CreatePostPageState extends State<CreatePostPage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFF205072),
-        onPressed: () {
+        onPressed: () async {
           // 게시물 작성 로직 구현
           Navigator.pop(context);
+          int categoryId = 1;
+          int memberId = 1;
+          await createPost(_titleController.text, _contentController.text,
+              categoryId, memberId);
         },
         child: Icon(Icons.check),
       ),
     );
   }
 }
-
-
-
 
 class MentorPage extends StatefulWidget {
   @override
@@ -524,13 +558,13 @@ class _MentorPageState extends State<MentorPage> {
       length: 2,
       child: Scaffold(
         appBar: TabBar(
-            labelColor: Color(0xFF205072),
-            unselectedLabelColor: Colors.black,
-            indicatorColor: Color(0xFF205072),
-            tabs: [
-              Tab(text: '팔로우 신청목록'),
-              Tab(text: '멘토 채팅'),
-            ],
+          labelColor: Color(0xFF205072),
+          unselectedLabelColor: Colors.black,
+          indicatorColor: Color(0xFF205072),
+          tabs: [
+            Tab(text: '팔로우 신청목록'),
+            Tab(text: '멘토 채팅'),
+          ],
         ),
         body: TabBarView(
           children: [
@@ -551,7 +585,7 @@ class FollowRequestList extends StatefulWidget {
 class _FollowRequestListState extends State<FollowRequestList> {
   List<UserRequest> _requests = List.generate(
     10,
-        (index) => UserRequest(
+    (index) => UserRequest(
       name: 'User${index + 1}',
       email: 'user${index + 1}@gmail.com',
       approved: false,
@@ -577,7 +611,8 @@ class _FollowRequestListState extends State<FollowRequestList> {
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
           leading: CircleAvatar(
-            backgroundImage: NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
+            backgroundImage:
+                NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
           ),
           title: Text(_requests[index].name),
           subtitle: Text(_requests[index].email),
@@ -586,10 +621,16 @@ class _FollowRequestListState extends State<FollowRequestList> {
             children: [
               OutlinedButton(
                 onPressed: () => _approveMentor(index),
-                child: Text(_requests[index].approved ? '멘토 승인 완료' : '멘토 승인 요청 중'),
+                child:
+                    Text(_requests[index].approved ? '멘토 승인 완료' : '멘토 승인 요청 중'),
                 style: OutlinedButton.styleFrom(
-                  primary: _requests[index].approved ? Color(0xFF205072) : Colors.black,
-                  side: BorderSide(color: _requests[index].approved ? Color(0xFF205072) : Colors.black),
+                  primary: _requests[index].approved
+                      ? Color(0xFF205072)
+                      : Colors.black,
+                  side: BorderSide(
+                      color: _requests[index].approved
+                          ? Color(0xFF205072)
+                          : Colors.black),
                 ),
               ),
               IconButton(
@@ -609,7 +650,8 @@ class UserRequest {
   final String email;
   bool approved;
 
-  UserRequest({required this.name, required this.email, required this.approved});
+  UserRequest(
+      {required this.name, required this.email, required this.approved});
 }
 
 class ChatPreview {
@@ -622,7 +664,7 @@ class ChatPreview {
 class MentorChatList extends StatelessWidget {
   final List<ChatPreview> chatPreviews = List.generate(
     10,
-        (index) => ChatPreview(
+    (index) => ChatPreview(
       mentiName: 'Menti ${index + 1}',
       lastMessage: 'Last message from Menti ${index + 1}',
     ),
@@ -635,12 +677,42 @@ class MentorChatList extends StatelessWidget {
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
           leading: CircleAvatar(
-            backgroundImage: NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
+            backgroundImage:
+                NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
           ),
           title: Text(chatPreviews[index].mentiName),
           subtitle: Text(chatPreviews[index].lastMessage),
         );
       },
     );
+  }
+}
+
+Future<void> createPost(
+    String title, String content, int categoryId, int memberId) async {
+  final String apiUrl = 'http://127.0.0.1:6060/post';
+  final Uri uri = Uri.parse(apiUrl).replace(
+    queryParameters: {
+      'memberId': memberId.toString(),
+    },
+  );
+  print(uri);
+  final response = await http.post(
+    uri,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({
+      'title': title,
+      'content': content,
+      'categoryId': categoryId,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    print('Post created successfully');
+  } else {
+    print('Failed to create post');
+    print(response.statusCode);
   }
 }
