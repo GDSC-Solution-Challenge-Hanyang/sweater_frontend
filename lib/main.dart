@@ -937,7 +937,7 @@ class _MentorPageState extends State<MentorPage> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: TabBar(
           labelColor: Color(0xFF205072),
@@ -945,12 +945,14 @@ class _MentorPageState extends State<MentorPage> {
           indicatorColor: Color(0xFF205072),
           tabs: [
             Tab(text: '팔로우 신청목록'),
+            Tab(text: '멘토 목록'),
             Tab(text: '멘토 채팅'),
           ],
         ),
         body: TabBarView(
           children: [
             FollowRequestList(),
+            MentorList(),
             MentorChatList(),
           ],
         ),
@@ -1034,6 +1036,108 @@ class UserRequest {
 
   UserRequest(
       {required this.name, required this.email, required this.approved});
+}
+
+class Mentor {
+  final int memberId;
+  final String nickname;
+  final String? description;
+  bool applied;
+
+  Mentor(
+      {required this.memberId,
+      required this.nickname,
+      this.description,
+      required this.applied});
+}
+
+class MentorList extends StatefulWidget {
+  @override
+  _MentorListState createState() => _MentorListState();
+}
+
+class _MentorListState extends State<MentorList> {
+  List<Mentor> _mentors = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMentors();
+  }
+
+  Future<void> _fetchMentors() async {
+    final response = await http
+        .get(Uri.parse('http://127.0.0.1:6060/member/mentor-list?memberId=1'));
+    if (response.statusCode == 200) {
+      List jsonResponse = json.decode(response.body);
+      setState(() {
+        _mentors = jsonResponse
+            .map((mentor) => Mentor(
+                memberId: mentor['memberId'],
+                nickname: mentor['nickname'],
+                description: mentor['description'],
+                applied: mentor['applied']))
+            .toList();
+      });
+    } else {
+      throw Exception('Failed to load mentors');
+    }
+  }
+
+  Future<void> _applyMentorship(int memberId, int mentorId) async {
+    final response = await http.post(Uri.parse(
+        'http://127.0.0.1:6060/mentoring/status?memberId=$memberId&mentorId=$mentorId'));
+    if (response.statusCode == 200) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Success'),
+            content: const Text('Mentorship application successful.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      ).then((_) => _fetchMentors());
+    } else {
+      throw Exception('Failed to apply mentorship');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: _mentors.length,
+      itemBuilder: (BuildContext context, int index) {
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundImage:
+                NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
+          ),
+          title: Text(_mentors[index].nickname),
+          subtitle: Text(_mentors[index].description ?? ''),
+          trailing: !_mentors[index].applied
+              ? OutlinedButton(
+                  onPressed: () =>
+                      _applyMentorship(1, _mentors[index].memberId),
+                  //_mentors[index].memberId
+                  child: Text('멘토 신청'),
+                  style: OutlinedButton.styleFrom(
+                    primary: Colors.black,
+                    side: BorderSide(color: Colors.black),
+                  ),
+                )
+              : Text('신청 완료', style: TextStyle(color: Color(0xFF205072))),
+        );
+      },
+    );
+  }
 }
 
 class ChatPreview {
