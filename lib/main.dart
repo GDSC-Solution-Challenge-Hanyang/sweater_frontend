@@ -967,25 +967,27 @@ class FollowRequestList extends StatefulWidget {
 }
 
 class _FollowRequestListState extends State<FollowRequestList> {
-  List<UserRequest> _requests = List.generate(
-    10,
-    (index) => UserRequest(
-      name: 'User${index + 1}',
-      email: 'user${index + 1}@gmail.com',
-      approved: false,
-    ),
-  );
+  List<UserRequest> _requests = [];
 
-  void _approveMentor(int index) {
-    setState(() {
-      _requests[index].approved = !_requests[index].approved;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _fetchMentorApplications();
   }
 
-  void _removeRequest(int index) {
-    setState(() {
-      _requests.removeAt(index);
-    });
+  Future<void> _fetchMentorApplications() async {
+    final memberId = '1'; // Replace with your actual memberId
+    final response = await http.get(Uri.parse(
+        'http://127.0.0.1:6060/member/mentor-application-list?memberId=$memberId'));
+
+    if (response.statusCode == 200) {
+      List jsonResponse = json.decode(response.body);
+      setState(() {
+        _requests = jsonResponse.map((e) => UserRequest.fromJson(e)).toList();
+      });
+    } else {
+      throw Exception('Failed to load mentor application list');
+    }
   }
 
   @override
@@ -998,30 +1000,14 @@ class _FollowRequestListState extends State<FollowRequestList> {
             backgroundImage:
                 NetworkImage('https://picsum.photos/seed/${index + 1}/200'),
           ),
-          title: Text(_requests[index].name),
-          subtitle: Text(_requests[index].email),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OutlinedButton(
-                onPressed: () => _approveMentor(index),
-                child:
-                    Text(_requests[index].approved ? '멘토 승인 완료' : '멘토 승인 요청 중'),
-                style: OutlinedButton.styleFrom(
-                  primary: _requests[index].approved
-                      ? Color(0xFF205072)
-                      : Colors.black,
-                  side: BorderSide(
-                      color: _requests[index].approved
-                          ? Color(0xFF205072)
-                          : Colors.black),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => _removeRequest(index),
-              ),
-            ],
+          title: Text(_requests[index].nickname),
+          subtitle: Text(_requests[index].description ?? ''),
+          trailing: Text(
+            _requests[index].accepted ? 'accepted' : 'pending',
+            style: TextStyle(
+              color:
+                  _requests[index].accepted ? Color(0xFF205072) : Colors.black,
+            ),
           ),
         );
       },
@@ -1030,12 +1016,25 @@ class _FollowRequestListState extends State<FollowRequestList> {
 }
 
 class UserRequest {
-  final String name;
-  final String email;
-  bool approved;
+  final int memberId;
+  final String nickname;
+  final String? description;
+  final bool accepted;
 
   UserRequest(
-      {required this.name, required this.email, required this.approved});
+      {required this.memberId,
+      required this.nickname,
+      this.description,
+      required this.accepted});
+
+  factory UserRequest.fromJson(Map<String, dynamic> json) {
+    return UserRequest(
+      memberId: json['memberId'],
+      nickname: json['nickname'],
+      description: json['description'],
+      accepted: json['accepted'],
+    );
+  }
 }
 
 class Mentor {
